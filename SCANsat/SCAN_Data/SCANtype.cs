@@ -25,11 +25,11 @@ namespace SCANsat.SCAN_Data
 		Biome = 1 << 3,		    // biome data
 		Anomaly = 1 << 4,		    // anomalies (position of anomaly)
 		AnomalyDetail = 1 << 5,	// anomaly detail (name of anomaly, etc.)
-		Kethane = 1 << 6,         // Kethane - K-type - Kethane
-		Ore = 1 << 7,             // Ore - Regolith & K-type - EPL & MKS
-		Kethane_3 = 1 << 8,       // Reserved - K-type
-		Kethane_4 = 1 << 9,       // Reserved - K-type
-		Uranium = 1 << 10,        // Uranium - Regolith - KSPI
+		Kethane = 1 << 6,         // Kethane
+		MetallicOre = 1 << 7,             // CRP Ore - Regolith
+		Ore = 1 << 8,				//Stock Ore
+		Helium3 = 1 << 9,       // Helium 3
+		Uraninite = 1 << 10,        // Uranium - Regolith - KSPI
 		Thorium = 1 << 11,        // Thorium - Regolith - KSPI
 		Alumina = 1 << 12,        // Alumina - Regolith - KSPI
 		Water = 1 << 13,          // Water - Regolith - KSPI
@@ -38,10 +38,13 @@ namespace SCANsat.SCAN_Data
 		Substrate = 1 << 16,      // Substrate - Regolith & K-type - MKS
 		KEEZO = 1 << 17,          // KEEZO - Regolith - Kass Effect
 		Karbonite = 1 << 18,    // Karbonite - Regolith
-		Regolith_10 = 1 << 19,         // Reserved - Regolith
+		FuzzyResources = 1 << 19,         // Low Detail Resource
 		Regolith_11 = 1<< 20,		// Reserved - Regolith
 
 		Everything_SCAN = (1 << 6) - 1,	// All default SCANsat scanners
+		AllResources = 2147483584,		// All resource types
+		DefinedResources = 917376,		// All defined resource types
+		MKSResources = 107648,			// All standard MKS/USI resources
 		Everything = Int32.MaxValue      // All scanner types
 	}
 }

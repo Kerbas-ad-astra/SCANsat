@@ -9,9 +9,8 @@
  * Copyright (c)2014 (Your Name Here) <your email here>; see LICENSE.txt for licensing details.
 */
 #endregion
+
 using System;
-//using System.Collections.Generic;
-//using System.Text.RegularExpressions;
 using UnityEngine;
 using SCANsat.SCAN_Data;
 using SCANsat.SCAN_Platform.Palettes;
@@ -27,17 +26,26 @@ namespace SCANsat.SCAN_UI.UI_Framework
 		//		SCANsat)
 		public static Color black 	= Color.black;
 		public static Color white 	= Color.white;
+		public static Color32 White = (Color32)white;
 		public static Color red		= Color.red;
 		public static Color grey		= Color.grey;
+		public static Color32 Grey = (Color32)grey;
 		public static Color clear	= Color.clear;
+		public static Color32 Clear = new Color32(0, 0, 0, 0);
 		public static Color magenta	= Color.magenta;
 		public static Color yellow	= Color.yellow;
 		public static Color cyan		= Color.cyan;
 		public static Color blue		= Color.blue;
 		public static Color green	= Color.green;
+		public static Color mechjebYellow = new Color(1.0f, 0.56f, 0.0f);
 
 		public static Color lerp (Color a, Color b, float t) {
 			return Color.Lerp (a,b,t);
+		}
+
+		public static Color32 lerp(Color32 a, Color32 b, float t)
+		{
+			return Color32.Lerp(a, b, t);
 		}
 
 		// XKCD Colors
@@ -112,38 +120,45 @@ namespace SCANsat.SCAN_UI.UI_Framework
 
 		public static Color heightToColor(float val, int scheme, SCANdata data)
 		{
-			Color32[] c = data.ColorPalette.colors;
-			if (data.PaletteReverse)
-				c = data.ColorPalette.colorsReverse;
+			Color32[] c = data.TerrainConfig.ColorPal.colors;
+			if (data.TerrainConfig.PalRev)
+				c = data.TerrainConfig.ColorPal.colorsReverse;
 			if (scheme == 0)
-				return heightToColor(val, data.MaxHeight, data.MinHeight, data.ClampHeight, data.PaletteDiscrete, c);
+				return heightToColor(val, data.TerrainConfig.MaxTerrain, data.TerrainConfig.MinTerrain, data.TerrainConfig.TerrainRange, data.TerrainConfig.ClampTerrain, data.TerrainConfig.PalDis, c);
 			else
-				return heightToColor(val, data.MaxHeight, data.MinHeight, data.PaletteDiscrete);
+				return heightToColor(val, data.TerrainConfig.MaxTerrain, data.TerrainConfig.MinTerrain, data.TerrainConfig.TerrainRange, data.TerrainConfig.PalDis);
 		}
 
-		private static Color heightToColor(float val, float max, float min, bool discrete)
+		private static Color heightToColor(float val, float max, float min, float range, bool discrete)
 		{
 			Color c = black;
-			float range = max - min;
 			val -= min;
-			if (discrete)
+			if (SCANcontroller.controller.trueGreyScale)
 			{
-				val = (greyScalePalette.colorsReverse.Length) * Mathf.Clamp(val, 0, range) / range;
-				if (Math.Floor(val) > greyScalePalette.colorsReverse.Length - 1)
-					val = greyScalePalette.colorsReverse.Length - 0.01f;
-				c = greyScalePalette.colorsReverse[(int)Math.Floor(val)];
+				val = Mathf.Clamp(val, 0, range) / range;
+				c = lerp(black, white, val);
 			}
 			else
 			{
-				val = (greyScalePalette.colorsReverse.Length - 1) * Mathf.Clamp(val, 0, range) / range;
-				if (Math.Floor(val) > greyScalePalette.colorsReverse.Length - 2)
-					val = greyScalePalette.colorsReverse.Length - 1.01f;
-				c = lerp(greyScalePalette.colorsReverse[(int)Math.Floor(val)], greyScalePalette.colorsReverse[(int)Math.Floor(val) + 1], val - (int)Math.Floor(val));
+				if (discrete)
+				{
+					val = (greyScalePalette.colorsReverse.Length) * Mathf.Clamp(val, 0, range) / range;
+					if (Math.Floor(val) > greyScalePalette.colorsReverse.Length - 1)
+						val = greyScalePalette.colorsReverse.Length - 0.01f;
+					c = greyScalePalette.colorsReverse[(int)Math.Floor(val)];
+				}
+				else
+				{
+					val = (greyScalePalette.colorsReverse.Length - 1) * Mathf.Clamp(val, 0, range) / range;
+					if (Math.Floor(val) > greyScalePalette.colorsReverse.Length - 2)
+						val = greyScalePalette.colorsReverse.Length - 1.01f;
+					c = lerp(greyScalePalette.colorsReverse[(int)Math.Floor(val)], greyScalePalette.colorsReverse[(int)Math.Floor(val) + 1], val - (int)Math.Floor(val));
+				}
 			}
 			return c;
 		}
 
-		internal static Color heightToColor(float val, float max, float min, float? clamp, bool discrete, Color32[] p)
+		internal static Color heightToColor(float val, float max, float min, float range, float? clamp, bool discrete, Color32[] p)
 		{
 			Color c = black;
 			if (clamp != null)
@@ -183,7 +198,6 @@ namespace SCANsat.SCAN_UI.UI_Framework
 			}
 			else
 			{
-				float range = max - min;
 				val -= min;
 				if (discrete)
 				{
@@ -223,7 +237,7 @@ namespace SCANsat.SCAN_UI.UI_Framework
 
 		internal static Color c_good {
 			get {
-				if (SCANcontroller.controller.colours != 1) 	return xkcd_PukeGreen;
+				if (SCANcontroller.controller.colours != 1) 	return cb_bluishGreen;
 				else 								return cb_skyBlue;
 			}
 		}
@@ -269,37 +283,42 @@ namespace SCANsat.SCAN_UI.UI_Framework
 		}
 
 		private static _Palettes currentPaletteSet;
-		private static _Palettes divPaletteSet;
-		private static _Palettes qualPaletteSet;
-		private static _Palettes seqPaletteSet;
-		private static _Palettes fixedPaletteSet;
-		private static Palette.Kind currentPaletteType;
-		private static string currentPaletteTypeName;
-		private static int currentPaletteSetSize;
-		private static Palette currentHeightPalette;
+		//private static _Palettes divPaletteSet;
+		//private static _Palettes qualPaletteSet;
+		//private static _Palettes seqPaletteSet;
+		//private static _Palettes fixedPaletteSet;
+		//private static Palette currentHeightPalette;
 		private static Palette greyScalePalette = BrewerPalettes.Greys(9);
 
-		internal static _Palettes generatePaletteSet(int size, Palette.Kind type)
+		private static _Palettes generatePaletteSet(int size, Palette.Kind type)
 		{
 			PaletteLoader.generatePalettes(type, size);
 			return new _Palettes(PaletteLoader.palettes.ToArray(), type, size);
 		}
 
-		internal static _Palettes setCurrentPalettesType(Palette.Kind type)
+		internal static _Palettes setCurrentPalettesType(Palette.Kind type, int size)
 		{
 			switch (type)
 			{
-				case Palette.Kind.Diverging:
-					return divPaletteSet; 
-				case Palette.Kind.Qualitative:
-					return qualPaletteSet;
-				case Palette.Kind.Sequential:
-					return seqPaletteSet;
 				case Palette.Kind.Fixed:
-					return fixedPaletteSet;
+					return generatePaletteSet(0, Palette.Kind.Fixed);
 				default:
-					return divPaletteSet;
+					return generatePaletteSet(size, type);
 			}
+			//switch (type)
+			//{
+			//	case Palette.Kind.Diverging:
+			//		return generatePaletteSet(size, type);
+			//		//return divPaletteSet; 
+			//	case Palette.Kind.Qualitative:
+			//		//return qualPaletteSet;
+			//	case Palette.Kind.Sequential:
+			//		//return seqPaletteSet;
+			//	case Palette.Kind.Fixed:
+			//		//return fixedPaletteSet;
+			//	default:
+			//		//return divPaletteSet;
+			//}
 		}
 
 		public static Palette GreyScalePalette
@@ -313,51 +332,43 @@ namespace SCANsat.SCAN_UI.UI_Framework
 			internal set
 			{
 				currentPaletteSet = value;
-				currentPaletteTypeName = value.paletteType.ToString();
-				currentPaletteType = value.paletteType;
-				currentPaletteSetSize = value.size;
 			}
 		}
 
 		public static string getPaletteTypeName
 		{
-			get { return currentPaletteTypeName; }
-		}
-
-		public static Palette.Kind getPaletteType
-		{
-			get { return currentPaletteType; }
+			get { return currentPaletteSet.paletteType.ToString(); }
 		}
 		
-		public static _Palettes DivPaletteSet
-		{
-			get { return divPaletteSet; }
-			internal set { divPaletteSet = value; }
-		}
+		//public static _Palettes DivPaletteSet
+		//{
+		//	get { return divPaletteSet; }
+		//	internal set { divPaletteSet = value; }
+		//}
 
-		public static _Palettes QualPaletteSet
-		{
-			get { return qualPaletteSet; }
-			internal set { qualPaletteSet = value; }
-		}
+		//public static _Palettes QualPaletteSet
+		//{
+		//	get { return qualPaletteSet; }
+		//	internal set { qualPaletteSet = value; }
+		//}
 
-		public static _Palettes SeqPaletteSet
-		{
-			get { return seqPaletteSet; }
-			internal set { seqPaletteSet = value; }
-		}
+		//public static _Palettes SeqPaletteSet
+		//{
+		//	get { return seqPaletteSet; }
+		//	internal set { seqPaletteSet = value; }
+		//}
 
-		public static _Palettes FixedPaletteSet
-		{
-			get { return fixedPaletteSet; }
-			internal set { fixedPaletteSet = value; }
-		}
+		//public static _Palettes FixedPaletteSet
+		//{
+		//	get { return fixedPaletteSet; }
+		//	internal set { fixedPaletteSet = value; }
+		//}
 
-		public static Palette CurrentPalette
-		{
-			get { return currentHeightPalette; }
-			internal set { currentHeightPalette = value; }
-		}
+		//public static Palette CurrentPalette
+		//{
+		//	get { return currentHeightPalette; }
+		//	internal set { currentHeightPalette = value; }
+		//}
 
 	}
 }

@@ -12,6 +12,7 @@
  * Created by David to allow the SCANsat plugin to function through the toolbar interface
  */
 #endregion
+
 using System.IO;
 using UnityEngine;
 using SCANsat.SCAN_Platform;
@@ -65,7 +66,7 @@ namespace SCANsat.SCAN_Toolbar
 				{
 					if (SCANcontroller.controller != null)
 					{
-						SCANcontroller.controller.newBigMap.Visible = !SCANcontroller.controller.newBigMap.Visible;
+						SCANcontroller.controller.BigMap.Visible = !SCANcontroller.controller.BigMap.Visible;
 						SCANcontroller.controller.bigMapVisible = !SCANcontroller.controller.bigMapVisible;
 					}
 				};
@@ -120,6 +121,8 @@ namespace SCANsat.SCAN_Toolbar
 			IButton bigMap = list.AddOption("Big Map");
 			IButton settings = list.AddOption("Settings");
 			IButton color = list.AddOption("Color Options");
+			IButton resource = list.AddOption("Planetary Overlay");
+			IButton resourceSettings = list.AddOption("Resource Settings");
 
 			smallMap.OnClick += (e2) =>
 				{
@@ -132,7 +135,7 @@ namespace SCANsat.SCAN_Toolbar
 				};
 			bigMap.OnClick += (e2) =>
 				{
-					SCANcontroller.controller.newBigMap.Visible = !SCANcontroller.controller.newBigMap.Visible;
+					SCANcontroller.controller.BigMap.Visible = !SCANcontroller.controller.BigMap.Visible;
 					SCANcontroller.controller.bigMapVisible = !SCANcontroller.controller.bigMapVisible;
 				};
 			settings.OnClick += (e2) =>
@@ -142,6 +145,14 @@ namespace SCANsat.SCAN_Toolbar
 			color.OnClick += (e2) =>
 				{
 					SCANcontroller.controller.colorManager.Visible = !SCANcontroller.controller.colorManager.Visible;
+				};
+			resource.OnClick += (e2) =>
+				{
+					SCANcontroller.controller.resourceOverlay.Visible = !SCANcontroller.controller.resourceOverlay.Visible;
+				};
+			resourceSettings.OnClick += (e2) =>
+				{
+					SCANcontroller.controller.resourceSettings.Visible = !SCANcontroller.controller.resourceSettings.Visible;
 				};
 			list.OnAnyOptionClicked += () => destroyMenu(menu);
 			menu.Drawable = list;

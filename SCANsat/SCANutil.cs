@@ -13,12 +13,17 @@
  * Copyright (c)2014 (Your Name Here) <your email here>; see LICENSE.txt for licensing details.
  */
 #endregion
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using SCANsat.SCAN_Platform;
+using SCANsat.SCAN_Platform.Palettes;
+using SCANsat.SCAN_Platform.Palettes.ColorBrewer;
+using SCANsat.SCAN_Platform.Palettes.FixedColors;
 using SCANsat.SCAN_Data;
+using SCANsat.SCAN_UI.UI_Framework;
 using palette = SCANsat.SCAN_UI.UI_Framework.SCANpalette;
 
 namespace SCANsat
@@ -26,6 +31,9 @@ namespace SCANsat
 
 	public static class SCANUtil
 	{
+
+		#region Public API Methods
+
 		/// <summary>
 		/// Determines scanning coverage for a given area with a given scanner type
 		/// </summary>
@@ -112,6 +120,81 @@ namespace SCANsat
 			}
 		}
 
+		/// <summary>
+		/// For a given Celestial Body this returns the SCANdata instance if it exists in the SCANcontroller master dictionary; return is null if the SCANdata does not exist for that body (ie it has never been visited while SCANsat has been active)
+		/// </summary>
+		/// <param name="body">Celestial Body object</param>
+		/// <returns>SCANdata instance for the given Celestial Body; null if none exists</returns>
+		public static SCANdata getData(CelestialBody body)
+		{
+			return getData(body.name);
+		}
+
+		/// <summary>
+		/// For a given Celestial Body name this returns the SCANdata instance if it exists in the SCANcontroller master dictionary; return is null if the SCANdata does not exist for that body (ie it has never been visited while SCANsat has been active), or if the SCANcontroller Scenario Module has not been loaded.
+		/// </summary>
+		/// <param name="BodyName">Name of celestial body (do not use TheName string)</param>
+		/// <returns>SCANdata instance for the given Celestial Body; null if none exists</returns>
+		public static SCANdata getData(string BodyName)
+		{
+			if (SCANcontroller.controller == null)
+				return null;
+
+			return SCANcontroller.controller.getData(BodyName);
+		}
+
+		/// <summary>
+		/// Do SCANsat maps automatically update with the stock, instant-scan orbital surveys?
+		/// </summary>
+		/// <returns>Returns true if instant scan is enabled</returns>
+		public static bool instantResourceScanEnabled()
+		{
+			if (SCANcontroller.controller == null)
+				return true;
+
+			return SCANcontroller.controller.easyModeScanning;
+		}
+
+		/// <summary>
+		/// Are the stock resource scanner functions disabled? prevents orbital resource surveys
+		/// </summary>
+		/// <returns>Returns true if stock resource scanning is available</returns>
+		public static bool stockResourceScanEnabled()
+		{
+			if (SCANcontroller.controller == null)
+				return false;
+
+			return !SCANcontroller.controller.disableStockResource;
+		}
+
+		/// <summary>
+		/// Is the stock resource biome lock enabled? reduced resource abundace accuracy if enabled
+		/// </summary>
+		/// <returns>Returns true if the biome lock is enabled</returns>
+		public static bool resourceBiomeLockEnabled()
+		{
+			if (SCANcontroller.controller == null)
+				return true;
+
+			return SCANcontroller.controller.resourceBiomeLock;
+		}
+
+		/// <summary>
+		/// Is a narrow-band scanner required on the current vessel for full resource data?
+		/// </summary>
+		/// <returns>Returns true if a narrow-band scanner is required</returns>
+		public static bool narrowBandResourceRestrictionEnabled()
+		{
+			if (SCANcontroller.controller == null)
+				return true;
+
+			return SCANcontroller.controller.needsNarrowBand;
+		}
+
+		#endregion
+
+		#region Internal Utilities
+
 		internal static bool isCovered(double lon, double lat, SCANdata data, SCANtype type)
 		{
 			int ilon = icLON(lon);
@@ -133,9 +216,9 @@ namespace SCANsat
 		}
 
 		internal static void registerPass ( double lon, double lat, SCANdata data, SCANtype type ) {
-			int ilon = SCANUtil.icLON(lon);
-			int ilat = SCANUtil.icLAT(lat);
-			if (SCANUtil.badLonLat(ilon, ilat)) return;
+			int ilon = icLON(lon);
+			int ilat = icLAT(lat);
+			if (badLonLat(ilon, ilat)) return;
 			data.Coverage[ilon, ilat] |= (Int32)type;
 		}
 
@@ -158,6 +241,7 @@ namespace SCANsat
 		internal static Func<double, int> icLAT = (lat) => ((int)(lat + 180 + 90)) % 180;
 		internal static Func<int, int, bool> badLonLat = (lon, lat) => (lon < 0 || lat < 0 || lon >= 360 || lat >= 180);
 		internal static Func<double, double, bool> badDLonLat = (lon, lat) => (lon < 0 || lat <0 || lon >= 360 || lat >= 180);
+		public static Func<double, double, bool> ApproxEq = (a, b) => Math.Abs(a - b) < 0.01;
 
 		internal static double fixLatShift(double lat)
 		{
@@ -179,29 +263,31 @@ namespace SCANsat
 			return (lon + 360 + 180) % 360;
 		}
 
-		/// <summary>
-		/// For a given Celestial Body this returns the SCANdata instance if it exists in the SCANcontroller master dictionary; return is null if the SCANdata does not exist for that body (ie it has never been visited while SCANsat has been active)
-		/// </summary>
-		/// <param name="body">Celestial Body object</param>
-		/// <returns>SCANdata instance for the given Celestial Body; null if none exists</returns>
-		public static SCANdata getData(CelestialBody body)
+		internal static Vector2d fixRetardCoordinates(Vector2d coords)
 		{
-			return getData(body.name);
-		}
-
-		/// <summary>
-		/// For a given Celestial Body name this returns the SCANdata instance if it exists in the SCANcontroller master dictionary; return is null if the SCANdata does not exist for that body (ie it has never been visited while SCANsat has been active)
-		/// </summary>
-		/// <param name="BodyName">Name of celestial body (do not use TheName string)</param>
-		/// <returns>SCANdata instance for the given Celestial Body; null if none exists</returns>
-		public static SCANdata getData(string BodyName)
-		{
-			if (!SCANcontroller.Body_Data.ContainsKey(BodyName))
+			if (coords.y < -90)
 			{
-				return null;
+				while (coords.y < -90)
+					coords.y += 90;
+				coords.y = -90 + Math.Abs(coords.y);
+				coords.x = fixLonShift(coords.x + 180);
+
+				return coords;
 			}
-			SCANdata data = SCANcontroller.Body_Data[BodyName];
-			return data;
+
+			if (coords.y > 90)
+			{
+				while (coords.y > 90)
+					coords.y -= 90;
+				coords.y = 90 - Math.Abs(coords.y);
+				coords.x = fixLonShift(coords.x - 180);
+
+				return coords;
+			}
+
+			coords.x = fixLonShift(coords.x);
+
+			return coords;
 		}
 
 		internal static double getElevation(CelestialBody body, double lon, double lat)
@@ -233,82 +319,27 @@ namespace SCANsat
 			return ret;
 		}
 
-		internal static float RegolithOverlay(double lat, double lon, string name, int body)
+		internal static float ResourceOverlay(double lat, double lon, string name, CelestialBody body, bool biomeLock)
 		{
 			float amount = 0f;
-			amount = SCANreflection.RegolithAbundanceValue(lat, lon, name, body, 0, 0);
+			var aRequest = new AbundanceRequest
+			{
+				Latitude = lat,
+				Longitude = lon,
+				BodyId = body.flightGlobalsIndex,
+				ResourceName = name,
+				ResourceType = HarvestTypes.Planetary,
+				Altitude = 0,
+				CheckForLock = biomeLock,
+				BiomeName = getBiomeName(body, lon, lat),
+				ExcludeVariance = false,
+			};
+
+			amount = ResourceMap.Instance.GetAbundance(aRequest);
 			return amount;
 		}
 
-		internal static SCANresource RegolithConfigLoad(ConfigNode node)
-		{
-			float min = .001f;
-			float max = 10f;
-			string name = "";
-			string body = "";
-			int resourceType = 0;
-			if (node.HasValue("ResourceName"))
-				name = node.GetValue("ResourceName");
-			else
-				return null;
-			SCANresourceType type = OverlayResourceType(name);
-			if (type == null)
-				return null;
-			if (type.Type == SCANtype.Nothing)
-				return null;
-			if (node.HasValue("PlanetName"))
-				body = node.GetValue("PlanetName");
-			if (!int.TryParse(node.GetValue("ResourceType"), out resourceType))
-				return null;
-			if (resourceType != 0)
-				return null;
-			ConfigNode distNode = node.GetNode("Distribution");
-			if (distNode != null)
-			{
-				if (distNode.HasValue("MinAbundance"))
-					float.TryParse(distNode.GetValue("MinAbundance"), out min);
-				if (distNode.HasValue("MaxAbundance"))
-					float.TryParse(distNode.GetValue("MaxAbundance"), out max);
-			}
-			if (min == max)
-				max += 0.001f;
-			SCANresource SCANres = new SCANresource(name, body, type.ColorFull, type.ColorEmpty, min, max, type, SCANresource_Source.Regolith);
-			if (SCANres != null)
-				return SCANres;
-
-			return null;
-		}
-
-		internal static void loadSCANtypes()
-		{
-			SCANcontroller.ResourceTypes = new Dictionary<string, SCANresourceType>();
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("SCANSAT_SENSOR"))
-			{
-				string name = "";
-				int i = 0;
-				string colorFull = "";
-				string colorEmpty = "";
-				if (node.HasValue("name"))
-					name = node.GetValue("name");
-				if (node.HasValue("SCANtype"))
-					if (!int.TryParse(node.GetValue("SCANtype"), out i))
-						continue;
-				if (node.HasValue("ColorFull"))
-					colorFull = node.GetValue("ColorFull");
-				if (node.HasValue("ColorEmpty"))
-					colorEmpty = node.GetValue("ColorEmpty");
-				if (!SCANcontroller.ResourceTypes.ContainsKey(name) && !string.IsNullOrEmpty(name))
-					SCANcontroller.ResourceTypes.Add(name, new SCANresourceType(name, i, colorFull, colorEmpty));
-			}
-		}
-
-		internal static SCANresourceType OverlayResourceType(string s)
-		{
-			var resourceType = SCANcontroller.ResourceTypes.FirstOrDefault(r => r.Value.Name == s).Value;
-			return resourceType;
-		}
-
-		internal static int getBiomeIndex(CelestialBody body, double lon , double lat)
+		private static int getBiomeIndex(CelestialBody body, double lon , double lat)
 		{
 			if (body.BiomeMap == null)		return -1;
 			double u = fixLon(lon);
@@ -335,6 +366,8 @@ namespace SCANsat
 		{
 			if (body.BiomeMap == null) return null;
 			int i = getBiomeIndex(body, lon , lat);
+			if (i == -1)
+				return null;
 			return body.BiomeMap.Attributes [i];
 		}
 
@@ -353,6 +386,223 @@ namespace SCANsat
 			return count;
 		}
 
+		internal static Palette paletteLoader(string name, int size)
+		{
+			if (name == "Default" || string.IsNullOrEmpty(name))
+				return PaletteLoader.defaultPalette;
+			else
+			{
+				try
+				{
+					if (name == "blackForest" || name == "departure" || name == "northRhine" || name == "mars" || name == "wiki2" || name == "plumbago" || name == "cw1_013" || name == "arctic")
+					{
+						//Load the fixed size color palette by name through reflection
+						var fixedPallete = typeof(FixedColorPalettes);
+						var fPaletteMethod = fixedPallete.GetMethod(name);
+						var fColorP = fPaletteMethod.Invoke(null, null);
+						return (Palette)fColorP;
+					}
+					else
+					{
+						//Load the ColorBrewer method by name through reflection
+						var brewer = typeof(BrewerPalettes);
+						var bPaletteMethod = brewer.GetMethod(name);
+						var bColorP = bPaletteMethod.Invoke(null, new object[] { size });
+						return (Palette)bColorP;
+					}
+				}
+				catch (Exception e)
+				{
+					SCANUtil.SCANlog("Error Loading Color Palette; Revert To Default: {0}", e);
+					return PaletteLoader.defaultPalette;
+				}
+			}
+		}
+
+		internal static CelestialBody getTargetBody(MapObject target)
+		{
+			if (target.type == MapObject.MapObjectType.CELESTIALBODY)
+			{
+				return target.celestialBody;
+			}
+			else if (target.type == MapObject.MapObjectType.MANEUVERNODE)
+			{
+				return target.maneuverNode.patch.referenceBody;
+			}
+			else if (target.type == MapObject.MapObjectType.VESSEL)
+			{
+				return target.vessel.mainBody;
+			}
+
+			return null;
+		}
+
+		internal static double slope(double centerElevation, CelestialBody body, double lon, double lat, double offset)
+		{
+			/* Slope is calculated using a nine point grid centered 5m around the vessel location
+						 * The rise between the vessel location's elevation and each point on the grid is calculated, converted to slope in degrees, and averaged;
+						 * Note: Averageing is not the most accurate method
+						 */
+
+			double latOffset = offset * Math.Cos(Mathf.Deg2Rad * lat);
+			double[] e = new double[9];
+			double[] s = new double[8];
+			e[0] = centerElevation;
+			e[1] = SCANUtil.getElevation(body, lon + latOffset, lat);
+			e[2] = SCANUtil.getElevation(body, lon - latOffset, lat);
+			e[3] = SCANUtil.getElevation(body, lon, lat + offset);
+			e[4] = SCANUtil.getElevation(body, lon, lat - offset);
+			e[5] = SCANUtil.getElevation(body, lon + latOffset, lat + offset);
+			e[6] = SCANUtil.getElevation(body, lon + latOffset, lat - offset);
+			e[7] = SCANUtil.getElevation(body, lon - latOffset, lat + offset);
+			e[8] = SCANUtil.getElevation(body, lon - latOffset, lat - offset);
+
+			if (body.ocean)
+			{
+				for (int i = 0; i < 9; i++)
+				{
+					if (e[i] < 0)
+						e[i] = 0;
+				}
+			}
+
+			return slope(e, 5);
+		}
+
+		internal static double slope (double[] elevations, double distance)
+		{
+			double[] s = new double[8];
+
+			/* Calculate rise for each point on the grid
+			 * The distance is 5m for adjacent points and 7.071m for the points on the corners
+			 * Rise is converted to slope; i.e. a 5m elevation change over a 5m distance is a rise of 1
+			 * Converted to slope using the inverse tangent this gives a slope of 45°
+			 * */
+
+			double diagonalDistance = Math.Sqrt(Math.Pow(distance, 2) * 2);
+
+			for (int i = 1; i <= 4; i++)
+			{
+				s[i - 1] = Math.Atan((Math.Abs(elevations[i] - elevations[0])) / distance) * Mathf.Rad2Deg;
+			}
+			for (int i = 5; i <= 8; i++)
+			{
+				s[i - 1] = Math.Atan((Math.Abs(elevations[i] - elevations[0])) / diagonalDistance) * Mathf.Rad2Deg;
+			}
+
+			return s.Sum() / 8;
+		}
+
+		internal static double slopeShort(double[] elevations, double distance)
+		{
+			double[] s = new double[4];
+
+			for (int i = 1; i <= 4; i++)
+			{
+				s[i - 1] = Math.Atan((Math.Abs(elevations[i] - elevations[0])) / distance) * Mathf.Rad2Deg;
+			}
+
+			return s.Sum() / 4;
+		}
+
+		internal static bool MouseIsOverWindow()
+		{
+			if (SCANcontroller.controller == null)
+				return false;
+
+			Vector2 pos = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+
+			if (SCANcontroller.controller.mainMapVisible && SCANcontroller.controller.mainMap.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.bigMapVisible && SCANcontroller.controller.BigMap.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.BigMap.spotMap != null && SCANcontroller.controller.BigMap.spotMap.Visible && SCANcontroller.controller.BigMap.spotMap.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.hiDefMap != null && SCANcontroller.controller.hiDefMap.Visible && SCANcontroller.controller.hiDefMap.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.settingsWindow.Visible && SCANcontroller.controller.settingsWindow.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.resourceSettings.Visible && SCANcontroller.controller.resourceSettings.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.instrumentsWindow.Visible && SCANcontroller.controller.instrumentsWindow.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.resourceOverlay.Visible && SCANcontroller.controller.resourceOverlay.GetWindowRect.Contains(pos))
+				return true;
+			else if (SCANcontroller.controller.colorManager.Visible && SCANcontroller.controller.colorManager.GetWindowRect.Contains(pos))
+				return true;
+
+			return false;
+		}
+
+		//This one is straight out of MechJeb :) - https://github.com/MuMech/MechJeb2/blob/master/MechJeb2/GuiUtils.cs#L463-L507
+		internal static SCANCoordinates GetMouseCoordinates(CelestialBody body)
+		{
+			Ray mouseRay = PlanetariumCamera.Camera.ScreenPointToRay(Input.mousePosition);
+			mouseRay.origin = ScaledSpace.ScaledToLocalSpace(mouseRay.origin);
+			Vector3d relOrigin = mouseRay.origin - body.position;
+			Vector3d relSurfacePosition;
+			double curRadius = body.pqsController.radiusMax;
+			double lastRadius = 0;
+			double error = 0;
+			int loops = 0;
+			float st = Time.time;
+			while (loops < 50)
+			{
+				if (PQS.LineSphereIntersection(relOrigin, mouseRay.direction, curRadius, out relSurfacePosition))
+				{
+					Vector3d surfacePoint = body.position + relSurfacePosition;
+					double alt = body.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(body.GetLongitude(surfacePoint), Vector3d.down) * QuaternionD.AngleAxis(body.GetLatitude(surfacePoint), Vector3d.forward) * Vector3d.right);
+					error = Math.Abs(curRadius - alt);
+					if (error < (body.pqsController.radiusMax - body.pqsController.radiusMin) / 100)
+					{
+						return new SCANCoordinates(fixLonShift((body.GetLongitude(surfacePoint))), fixLatShift(body.GetLatitude(surfacePoint)));
+					}
+					else
+					{
+						lastRadius = curRadius;
+						curRadius = alt;
+						loops++;
+					}
+				}
+				else
+				{
+					if (loops == 0)
+					{
+						break;
+					}
+					else
+					{ // Went too low, needs to try higher
+						curRadius = (lastRadius * 9 + curRadius) / 10;
+						loops++;
+					}
+				}
+			}
+
+			return null;
+		}
+
+		public class SCANCoordinates
+		{
+			public double latitude;
+			public double longitude;
+
+			public SCANCoordinates(double lon, double lat)
+			{
+				longitude = lon;
+				latitude = lat;
+			}
+
+			public string ToDegString()
+			{
+				return latitude.ToString("F1") + "°, " + longitude.ToString("F1") + "°";
+			}
+
+			public string ToDMS()
+			{
+				return SCANuiUtil.toDMS(latitude, longitude, 0);
+			}
+		}
+
 		internal static void SCANlog(string log, params object[] stringObjects)
 		{
 			log = string.Format(log, stringObjects);
@@ -366,140 +616,9 @@ namespace SCANsat
 			SCANlog(log, stringObjects);
 		}
 
-	}
-
-		#region fix Duplicated Code
-
-		// Mihara: Notice that quite a bit of it, at least conceptually, duplicates code that SCANsat already contains elsewhere,
-		// and in general needs trimming.
-
-		//public static class MapIcons
-		//{
-		//		public enum OtherIcon
-		//		{
-		//				None,
-		//				PE,
-		//				AP,
-		//				AN,
-		//				DN,
-		//				NODE,
-		//				SHIPATINTERCEPT,
-		//				TGTATINTERCEPT,
-		//				ENTERSOI,
-		//				EXITSOI,
-		//				PLANET,
-		//		}
-
-		//		public static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
-		//		{
-		//				int x = 0;
-		//				int y = 0;
-		//				const float symbolSpan = 0.2f;
-		//				if (icon != OtherIcon.None) {
-		//						switch (icon) {
-		//						case OtherIcon.AP:
-		//								x = 1;
-		//								y = 4;
-		//								break;
-		//						case OtherIcon.PE:
-		//								x = 0;
-		//								y = 4;
-		//								break;
-		//						case OtherIcon.AN:
-		//								x = 2;
-		//								y = 4;
-		//								break;
-		//						case OtherIcon.DN:
-		//								x = 3;
-		//								y = 4;
-		//								break;
-		//						case OtherIcon.NODE:
-		//								x = 2;
-		//								y = 1;
-		//								break;
-		//						case OtherIcon.SHIPATINTERCEPT:
-		//								x = 0;
-		//								y = 1;
-		//								break;
-		//						case OtherIcon.TGTATINTERCEPT:
-		//								x = 1;
-		//								y = 1;
-		//								break;
-		//						case OtherIcon.ENTERSOI:
-		//								x = 0;
-		//								y = 2;
-		//								break;
-		//						case OtherIcon.EXITSOI:
-		//								x = 1;
-		//								y = 2;
-		//								break;
-		//						case OtherIcon.PLANET:
-		//								// Not sure if it is (2,3) or (3,2) - both are round
-		//								x = 2;
-		//								y = 3;
-		//								break;
-		//						}
-		//				} else {
-		//						switch (type) {
-		//						case VesselType.Base:
-		//								x = 2;
-		//								y = 0;
-		//								break;
-		//						case VesselType.Debris:
-		//								x = 1;
-		//								y = 3;
-		//								break;
-		//						case VesselType.EVA:
-		//								x = 2;
-		//								y = 2;
-		//								break;
-		//						case VesselType.Flag:
-		//								x = 4;
-		//								y = 0;
-		//								break;
-		//						case VesselType.Lander:
-		//								x = 3;
-		//								y = 0;
-		//								break;
-		//						case VesselType.Probe:
-		//								x = 1;
-		//								y = 0;
-		//								break;
-		//						case VesselType.Rover:
-		//								x = 0;
-		//								y = 0;
-		//								break;
-		//						case VesselType.Ship:
-		//								x = 0;
-		//								y = 3;
-		//								break;
-		//						case VesselType.Station:
-		//								x = 3;
-		//								y = 1;
-		//								break;
-		//						case VesselType.Unknown:
-		//								x = 3;
-		//								y = 3;
-		//								break;
-		//						case VesselType.SpaceObject:
-		//								x = 4;
-		//								y = 1;
-		//								break;
-		//						default:
-		//								x = 3;
-		//								y = 2;
-		//								break;
-		//						}
-		//				}
-		//				var result = new Rect();
-		//				result.x = symbolSpan * x;
-		//				result.y = symbolSpan * y;
-		//				result.height = result.width = symbolSpan;
-		//				return result;
-		//		}
-		//}
-
 		#endregion
+
+	}
 
 		#region JUtil
 

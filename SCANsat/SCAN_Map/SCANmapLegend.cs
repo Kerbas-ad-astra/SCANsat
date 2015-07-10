@@ -11,7 +11,6 @@
 */
 #endregion
 
-using System;
 using SCANsat.SCAN_Platform.Palettes;
 using SCANsat.SCAN_Data;
 using palette = SCANsat.SCAN_UI.UI_Framework.SCANpalette;
@@ -35,13 +34,13 @@ namespace SCANsat.SCAN_Map
 
 		internal Texture2D getLegend(float min, float max, int scheme, SCANdata data)
 		{
-			if (legend != null && legendMin == min && legendMax == max && legendScheme == scheme && data.ColorPalette == dataPalette)
+			if (legend != null && legendMin == min && legendMax == max && legendScheme == scheme && data.TerrainConfig.ColorPal.hash == dataPalette.hash)
 				return legend;
 			legend = new Texture2D(256, 1, TextureFormat.RGB24, false);
 			legendMin = min;
 			legendMax = max;
 			legendScheme = scheme;
-			dataPalette = data.ColorPalette;
+			dataPalette = data.TerrainConfig.ColorPal;
 			Color[] pix = legend.GetPixels();
 			for (int x = 0; x < 256; ++x)
 			{
@@ -59,7 +58,7 @@ namespace SCANsat.SCAN_Map
 			Color[] pix = t.GetPixels();
 			for (int x = 0; x < 256; ++x)
 			{
-				float val = (x * (data.MaxHeight - data.MinHeight)) / 256f + data.MinHeight;
+				float val = (x * (data.TerrainConfig.MaxTerrain - data.TerrainConfig.MinTerrain)) / 256f + data.TerrainConfig.MinTerrain;
 				pix[x] = palette.heightToColor(val, scheme, data);
 			}
 			t.SetPixels(pix);
@@ -67,14 +66,14 @@ namespace SCANsat.SCAN_Map
 			return t;
 		}
 
-		internal Texture2D getLegend(float max, float min, float? clamp, bool discrete, Color32[] c)
+		internal Texture2D getLegend(float max, float min, float range, float? clamp, bool discrete, Color32[] c)
 		{
 			Texture2D t = new Texture2D(128, 1, TextureFormat.RGB24, false);
 			Color[] pix = t.GetPixels();
 			for (int x = 0; x < 128; x++)
 			{
 				float val = (x * (max - min)) / 128f + min;
-				pix[x] = palette.heightToColor(val, max, min, clamp, discrete, c);
+				pix[x] = palette.heightToColor(val, max, min, range, clamp, discrete, c);
 			}
 			t.SetPixels(pix);
 			t.Apply();

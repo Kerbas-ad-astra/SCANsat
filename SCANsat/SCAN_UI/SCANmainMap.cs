@@ -12,10 +12,7 @@
  *
  */
 #endregion
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+
 using SCANsat.SCAN_Platform;
 using SCANsat.SCAN_Data;
 using SCANsat.SCAN_UI.UI_Framework;
@@ -33,12 +30,14 @@ namespace SCANsat.SCAN_UI
 		private bool notMappingToday; //Unused out-of-power bool
 		private Rect mapRect;
 		private static bool showVesselInfo = true;
-		internal static Rect defaultRect = new Rect(10, 55, 380, 230);
+		internal static readonly Rect defaultRect = new Rect(10, 55, 380, 230);
+		private static Rect sessionRect = defaultRect;
+		private bool flash;
 
 		protected override void Awake()
 		{
 			WindowCaption = "S.C.A.N. Planetary Mapping";
-			WindowRect = defaultRect;
+			WindowRect = sessionRect;
 			WindowOptions = new GUILayoutOption[2] { GUILayout.Width(380), GUILayout.Height(230) };
 			WindowStyle = SCANskins.SCAN_window;
 			Visible = false;
@@ -50,7 +49,7 @@ namespace SCANsat.SCAN_UI
 			SCAN_SkinsLibrary.SetCurrentTooltip();
 		}
 
-		internal override void Start()
+		protected override void Start()
 		{
 			Visible = SCANcontroller.controller.mainMapVisible;
 			v = FlightGlobals.ActiveVessel;
@@ -74,7 +73,6 @@ namespace SCANsat.SCAN_UI
 				SCANcontroller.controller.addToBodyData(v.mainBody, data);
 			}
 			sensors = SCANcontroller.controller.activeSensorsOnVessel(v.id);
-			data.updateImages(sensors);
 		}
 
 		protected override void DrawWindow(int id)
@@ -83,7 +81,6 @@ namespace SCANsat.SCAN_UI
 			topMenu(id);
 			growS();
 				mainMap(id);				/* Draws the main map texture */
-				fillS(-6);
 				growE();
 					scannerInfo(id);		/* Draws the scanner indicators */
 					windowButtons(id);		/* Draw the buttons for other SCANsat windows */
@@ -93,11 +90,16 @@ namespace SCANsat.SCAN_UI
 			stopS();
 		}
 
+		protected override void DrawWindowPost(int id)
+		{
+			sessionRect = WindowRect;
+		}
+
 		//Print the version number
 		private void versionLabel(int id)
 		{
 			Rect r = new Rect(6, 0, 50, 18);
-			GUI.Label(r, SCANversions.SCANsatVersion, SCANskins.SCAN_whiteReadoutLabel);
+			GUI.Label(r, SCANmainMenuLoader.SCANsatVersion, SCANskins.SCAN_whiteReadoutLabel);
 		}
 
 		//Draw the top menu items
@@ -114,7 +116,8 @@ namespace SCANsat.SCAN_UI
 				if (GUI.Button(r, "+", SCANskins.SCAN_buttonBorderless))
 					showVesselInfo = !showVesselInfo;
 			}
-			r.x += 16;
+			r.x += 20;
+			r.y += 1;
 			if (GUI.Button(r, SCANcontroller.controller.closeBox, SCANskins.SCAN_closeButton))
 			{
 				Visible = false;
@@ -125,8 +128,16 @@ namespace SCANsat.SCAN_UI
 		//Draw the map texture
 		private void mainMap(int id)
 		{
-			GUILayout.Label(data.Map);
-			mapRect = GUILayoutUtility.GetLastRect();
+			mapRect = new Rect(10, 20, 360, 180);
+			GUI.DrawTexture(mapRect, data.drawPartialMap(sensors));
+
+			if (data.Building || data.ExternalBuilding)
+			{
+				flash = (int)(Time.realtimeSinceStartup % 2) == 0;
+				SCANuiUtil.drawLabel(new Rect(mapRect.x + 80, mapRect.y + 50, 200, 60), "Building Database...", SCANskins.SCAN_insColorLabel, true, SCANskins.SCAN_insColorLabelShadow, flash, SCANskins.SCAN_insWhiteLabel);
+			}
+
+			GUILayout.Space(184);
 		}
 
 		//Draw the active scanner display
@@ -146,7 +157,7 @@ namespace SCANsat.SCAN_UI
 			//fillS();
 			if (GUILayout.Button(iconWithTT(SCANskins.SCAN_BigMapIcon, "Big Map"), SCANskins.SCAN_windowButton, GUILayout.Height(32), GUILayout.Width(32)))
 			{
-				SCANcontroller.controller.newBigMap.Visible = !SCANcontroller.controller.newBigMap.Visible;
+				SCANcontroller.controller.BigMap.Visible = !SCANcontroller.controller.BigMap.Visible;
 				SCANcontroller.controller.bigMapVisible = !SCANcontroller.controller.bigMapVisible;
 			}
 			if (GUILayout.Button(iconWithTT(SCANskins.SCAN_InstrumentIcon, "Instrument Window"), SCANskins.SCAN_windowButton, GUILayout.Height(32), GUILayout.Width(32)))
@@ -161,6 +172,10 @@ namespace SCANsat.SCAN_UI
 			{
 				SCANcontroller.controller.colorManager.Visible = !SCANcontroller.controller.colorManager.Visible;
 			}
+			if (GUILayout.Button(iconWithTT(SCANskins.SCAN_OverlayIcon, "Overlay Contral"), SCANskins.SCAN_windowButton, GUILayout.Height(32), GUILayout.Width(32)))
+			{
+				SCANcontroller.controller.resourceOverlay.Visible = !SCANcontroller.controller.resourceOverlay.Visible;
+			}
 		}
 
 		//Draw the vessel location and alt info
@@ -170,7 +185,7 @@ namespace SCANsat.SCAN_UI
 			{
 				int count = 2;
 				vesselInfo(v, mapRect, 1, true);
-				foreach (SCANcontroller.SCANvessel sV in SCANcontroller.controller.Known_Vessels.Values)
+				foreach (SCANcontroller.SCANvessel sV in SCANcontroller.controller.Known_Vessels)
 				{
 					if (sV.vessel == FlightGlobals.ActiveVessel)
 						continue;

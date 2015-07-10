@@ -1,102 +1,310 @@
-Version 9.5 - 2015-1-23
+Version 14.0 - 2014-7-5
 ------------------------
 
-- Significant internal code changes; any addons with hard-depencies on SCANsat will likely need updating
-	- Public read-only properties added for most fields
+- Updated for KSP 1.0.4
 
-- Stock app launcher support added
-	- A single toolbar button opens/closes the small map
-	- Can be disabled through the settings menu
-	- When Blizzy's toolbar and the stock toolbar are disabled the small map can be opened by starting a scan with any SCANsat instrument
-	
-- Improvements to big map terrain data caching
-	- Reduces memory used by the big map by 40%
-	- A single cache used for each map projection type
-	- Improves big map generation speed when switching projection types
-	
-- Big map grid texture replaced by line rendering method
-	- Further reduces big map memory usage
-	
-- Localized slope indicator added to the instrument window
-	- Slope calculated based on a 3X3 grid centered 5m around the vessel's location
-	- Altitude indicator displays the correct height above the terrain while under timewarp
-	
-- Exported maps saved to GameData/SCANsat/PluginData folder
+- Updated for MechJeb 2.5.2
 
-- New science results text added
-	- Thanks Olympic1
-
-- Uranium resource type changed to Uraninite
-
-Version 9.4.1 - 2014-12-22
+- Resource Scanning System Overhaul
 ------------------------
 
-- Fix for orbit overlays on the first tier tracking station
+- Replaces or augments most aspects of the stock surface resource scanning system
 
-Version 9.4 - 2014-12-19
+	- New option available to disable stock scanning
+		- Disables the orbital survey
+		- Replaces the resource concentration readout from scanners with SCANsat modules
+		- Replaces the resource map found on Narrow-Band scanners with a modified SCANsat zoom map
+		- Right-click menu resource concentration readout dependent on SCANsat scanning coverage 
+		- Stock resource scanning data can be erased for each planet (does not affect resource biome scanning data)
+
+	- Stock resource parts adapted for SCANsat resource scanning
+		- Module Manager required for SCANsat resource scanning
+		- M700 (clamshell) scanner used for low-resolution resource scanning; covers all resources
+			- A one-time patch on updating will deactivate all resource scanners to prevent existing M700 scanners from being used as they were in version 12
+		- Narrow-band scanners used for high-resolution, individual resource scanning
+
+	- Planetary map overlay
+		- New window to control resource, terrain, and biome map overlays
+		- Biome overlays limited to stock color scheme for now
+		- Tooltips for overlays when the mouse cursor is over the planet
+		- Overlay window buttons added to the big map and small map windows; also added to the Toolbar menu
+		- Select between all available resources, terrain maps, and biome maps
+
+	- Resource settings window
+		- New window to control resource options and planetary overlay quality
+		- Biome lock, instant scan, and narrow-band scanner options are the same as in previous versions
+		- The instant scan option is automatically disabled when Disable Stock Resources is activated
+		- Both SCANsat and stock resource scanning data for the current planet can be reset
+		- Interpolation and map overlay size can be configured
+		- Biome maps use twice the map height as resource maps (512*256 for resources; 1024*512 for biomes by default)
+		- Coverage Transparency option shows scanned areas in grey if there are no resources present; useful for determining what areas have already been scanned
+		
+	- SCAN High Definition Camera
+		- New part module to replace the stock hi def camera, found on the narrow-band scanner
+		- Opens a modified SCANsat zoom window
+		- Only active when stock resource scanning is disabled
+
+- Other Updates
 ------------------------
+		
+- SCANsat big map
+	- Resource overlay now matches the planetary overlay more closely
+	- Interpolation is used to generate the resource map overlay; this greatly speeds up big map rendering speed
+	- Zoom map uses more accurate interpolation method for resource overlays
+	- Biome maps can be generated without the white border
+	
+- Add ground track display for scanning vessels while in map mode
+	- Scanning width is displayed for the widest FOV
+	- Width is only accurate at the equator
+	
+- Terrain height map databases generated in the background
+	- Maps generated once per game session for each planet
+	- These maps are used to generate the small map and the terrain planetary overlay
+	- Performance impact during map generation is negligible
+	- Greatly speeds up small map rendering and terrain overlays
+	- An accelerated map generation method is used if the small map is open or a terrain overlay is selected from a planet which doesn't have its terrain map already created
+	
+- A resource selection drop down has been added to the zoom map
+	- Can be used to change the seleceted resource or disable the overlay
+	
+- Instrument window resource readout
+	- Resource abundance at the current location is displayed on the instruments window
+	- When more than one resource is present buttons along the side allow for switching the resource readout
+	- Narrow-band scanner restrictions apply if that option is selected in the resource settings window
+
+
+- Bug Fixes and Misc Features
+------------------------
+
+	- Waypoint location correct when waypoint coordinates are stored with nonsense values (ie. -120 S...)
+	- Active vessel properly updates for the big map orbit display
+	- Prevent pole scanning overlap at the north pole
+	- Fixed slope calculation over water
+	- Fix bug when applying terrain color config to non-clamped color scheme
+	- Fix bug with orbit overlays in zoom map
+	- Fix bug allowing scanners to continue scanning without power
+	- Fix another bug with scanning near the poles
+	- Fix a bug causing duplicate grid lines to be drawn on the space center map
+
+	- Highlight active selection in drop down menus
+	- Stop animations when they reach their endpoints - may prevent FAR from getting stuck recalculating the vessel surface
+	- Various UI tweaks and updates
+
+- Updates from Version 13.4
+
+	- Fix ground tracks being displayed on the wrong planet
+	- Fix bug in overlay control window while a planet's terrain map is being generated
+	
+
+Version 12.1 - 2015-5-30
+------------------------
+
+- Updated for MechJeb 2.5.1
+
+- Added SCANsat sensor type and color configs for He-3
+     - SCANsat sensortype = 512
+
+- Fix a bug while adding resource scanners in the editor
+- Add resource scanner action groups
+     - Only work when the scanner is deployed
+	 
+- Fix MapTraq texture location
+
+
+Version 12 - 2015-5-3
+------------------------
+
+- Updated for KSP 1.0.2
+
+Parts:
+- All part textures converted to DDS format
+- Part textures reduced in size; total RAM saving of ~20MB
+- RADAR scanner moved to Basic Science tech node
+- Part drag and temperature properties adjusted
+
+Zoom Map:
+- Entirely new zoom map window
+
+- The window is a now a separate object, created by right-clicking somewhere on the big map
+	- Can be dragged and re-sized independently of the big map
+
+- Window Controls
+	- Zoom in and out buttons are available on the top row
+	- Right click within the zoom map to zoom in and re-center the map
+	- Left click to zoom out
+	- Middle click, or Modifier Key (ALT) + Right-click to re-center without changing the zoom level
+	- Zoom lever indicated along the top row; click the indicator to re-sync the zoom map with the big map
+
+- Overlay Options
+	- Vessel orbit, waypoints, and anomaly locations can be toggled independently of their settings on the big map
+	- Resource overlays will be shown in the zoom map
+	
+- Landing Waypoint Selection
+	- The target selection icon in the upper-left can be selected to activate target selection mode
+	- Click anywhere in the zoom map to select a target site
+	- The site will be marked with a target icon on the zoom map, the big map, and as an overlay on the planet surface in map mode
+	- Targets are persistent; one can be selected for each planet
+	- click within the zoom window, but outside of the map itselft to cancel target selection and clear any existing targets
+	
+- MechJeb Landing Guidance
+	- When MechJeb is installed the target selection mode can be switched to interact with the MechJeb Landing Guidance Module
+	- A MechJeb core must be on your current vessel and the Landing Guidance Module must be unlocked in the R&D center
+	
+Stock Resource Integration:
+- The new stock resource system has been integrated into SCANsat
+
+- Multiple modes of operation are available
+
+- Default Mode
+	- When scanning a planet using the stock Orbital Survey Scanner instrument all SCANsat resource maps for that planet will be filled in
+	- These are available for display on the big map
+	
+	- The biome lock is active, giving only rough estimates of resource abundance until surface surveys are conducted
+	
+	- The zoom window can only show resource overlays if a vessel with a narrow-band scanner is in orbit around the planet and its inclination is high enough to cover the area shown in the zoom map
+
+- SCANsat Mode
+	- In this mode SCANsat map overlays are decoupled from the stock scanning system
+	- All resources must be scanned using normal SCANsat methods to be shown on the map overlay
+	
+FinePrint Waypoint Integration:
+- Waypoints generated by FinePrint contracts can be displayed on SCANsat maps
+
+- A new waypoint icon is available on the big map and zoom map
+
+- The waypoint name is shown when the mouse-cursor is over it
+
+- The SCANsat Instruments Window displays the name of a waypoint when your current vessel is within range
+
+- Also works with custom waypoints added through nightingale's Waypoint Manager
+
+Color Management Updates:
+- Color options for slope, biome and resource maps are now available
+	- An HSV color selection wheel is available for custom color selection
+	- Click the mouse on the color wheel to select a color hue and saturation level
+	- Adjust the value (brightness) slider to the right
+
+- Slope maps use two sets of colors, for high and low slope values
+
+- Biome map end-point colors can be adjusted
+- Stock biome map colors can be used in place of SCANsat colors
+- The terrain transparency for biome maps can be adjusted
+
+- Resource end-point colors can be adjusted
+- Resource cut-off values can be adjusted for each planet
+- Resource overlay transparency can be adjusted
+
+External Color Config File:
+- All color options are saved to an external file 
+	- GameData/SCANsat/Resources/SCANcolors.cfg
+	- Each tab in the Color Management Window has a save option, this will update the values in the config file
+	
+- Terrain and Resource color options are saved for each planet; values for addon planets can be added as well
+
+- Values in the config file serve as default values
+	- New save files will use these values
+	- Existing save files can reset color values to these defaults using the Color Management Window
+
+Bug Fixes and Miscellaneous Updates:
+- Docking, un-docking, decoupling, breaking your vessel etc... while active SCANsat sensors are onboard will not result in spurious sensor activity anymore
+
+- Includes a fixed Active Texture Management config file to prevent SCANsat icons from being altered
+
+- Window positions made persistent
+	- The big map position is saved and will remain persistent through different game sessions
+	- Other window positions are only persistent during a single game session
+
+- Fixed a bug with data resets in the tracking center
+
+- Fixed Instruments Window slope calculation at high latitudes
+- Instruments Window now displays terrain altitude while the vessel is on the surface
+
+- Various UI tweaks and fixes
+
+- Remove Community Tech Tree support
+
+Updates From Version 11.6:
+- Updates to Zoom Map resource overlay restriction
+	- Less frequent checks for suitable vessels in orbit
+	- Fix bug when checking parts with multiple narrow-band scanner modules
+	
+- Fix MechJeb integration
+
+- Fix Blizzy toolbar icons
+
+Version 10 - 2015-1-29
+---------------------
+
+User Interface:
+- Complete replacement of SCANsat user interface
+
+- Stock App Launcher Button included
+	- Toggles the SCANsat small map, which can be used to open all other windows
+	- Toggles the KSC map in the Space Center or Tracking Station scenes
+	- Can be toggled on/off in the settings menu
+	- Does not replace Blizzy78's Toolbar buttons
+
+- New SCANsat Big Map
+	- Text buttons replaced with drop down menus and icon toggles
+	- Maps for different planets can be selected at any time
+	- Replaced longitude/latitude texture grid overlay with simple line drawing overlay
+	
+- New KSC and Tracking Station window
+	- Fixed-size version of the big map
+	
+- Improvements to big map elevation data caching
+	- Reduced memory usage
+	- Faster map rendering when switching projection types
+	
+- New Color Management window
+	- Used to change color palettes for elevation maps
+	- Used to set various terrain settings
+	- All settings are saved for each planet
+	
+- Improved SCAN instruments window
+	- Altitude above terrain is shown correctly while in time warp
+	- Localized slope is indicated based on a 3X3 grid centered 5m around the vessel
+		
+Resources:
+- Resource overlay and selection is controlled entirely through the big map
+	- Resource selection is handled through a drop down menu found along the top of the map
+	- Resource overlays are toggled by the resource icon on the lower left of the map
+	
+- Updated to support Regolith 1.4
+	- Regolith Biome lock settings can be toggled in the SCANsat settings window
+
+- SCANsatKethane not functional
+
+- ORSX support removed
+	
+Code Base:
+- Significant internal code changes and rearrangement
+
+- Anything not relying entirely on the public API methods in SCANUtil will likely break
+	
+Miscellaneous and Bug Fixes:
+- Maps exported to GameData/SCANsat/PluginData folder; the location where they should have been	
+- Science results text added courtesy of Olympic1
+- Uranium resource name changed to Uraninite to support the Community Resource Pack
+- SETI Rebalance project compatibility added for Community Tech Tree
+- Prevent scanning coverage from temporarily reporting 100%, which disrupted some SCANsat contracts
+- From v9; Fixed automatic camera movement while the KSC map was active in the tracking station
+- From v9; Fix potential error with stock toolbar when changing scenes
+
+
+Version 8.1 - 2014-12-19
+---------------------
 
 - Updated for KSP 0.90
 
 - Fixes for biome related issues due to 0.90 changes
 
-- Regolith resource overlay support added
-	- ORSX overlay support dropped
+- Fixes for orbit renderer in early career mode; no orbit overlay on 1st tier tracking station
 
-Version 9.3 - 2014-12-13
-------------------------
+- All parts use .mbm textures
 
-- In-flight big map has been replaced by a modified version of the KSC map
-
-- Resource overlays are controlled entirely through the big map
-	- Select resources through the drop down menu
-	- Activate overlay with the resource icon toggle on the lower left
-	- All resource controls have been removed from the settings menu
-
-- Support for Community Tech Tree added
-	- SCANsat parts appear in different tech node positions when using CTT and TechManager
-	- Realism Overhaul not affected; will need to create a separate config for this
-	
-- Text boxes have been replaced by icon textures wherever possible
-	- Map overlay options
-	- Other SCANsat window buttons
-	
-- Improvements to the UI of the color selection window
-	- Dynamically updating sliders used to adjust the terrain height options
-	- New fixed size color palettes added
-	- Numerous bug fixes and improvements to syncing color selections to the currently active map
-
-Version 9.2 - 2014-10-26
-------------------------
-
-- Color selection and management window added
-	- Select from a variety of color palettes
-	- Manage map options for each individual planet
-	- Default colore palett, height range, and other options added for each planet
-	
-- Settings and Color Management window buttons added to KSC Map window
-
-- Numerous checks added to prevent errors caused by Scenario Module or SCANdata loading problems
-	- Several changes made to saving and loading process - Make backups
-	- Less log spam on scenario module failure
-	
-- Internal changes to SCANdata and SCANcontroller classes
-	- End user result should be similar; bugs may exist
-	- Data only loaded on first visit to a planet, rather than all at once; does not affect existing saves
-	- All explicit external interfaces should be unaffected
-
-Version 9 - 2014-10-14
-------------------------
-
-- Total UI replacement
-	- All UI elements have been overhauled
-	- Each window is its own Object
-	- UI support moved to Technogeeky's modification of TriggerAu's KSP Platform
-- KSP Map added
-	- A map similar to the standard big map
-	- Available in Space center and tracking station scenes
-- All textures replaced with .mbm format files
-
+- Community Tech Tree support added
+	- All parts rebalanced for cost and tech tree position
 
 Version 8 - 2014-10-8
 ---------------------
